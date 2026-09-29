@@ -1,0 +1,19 @@
+﻿# 1. NPM Dependencies (Auto-installed by server.js on startup)
+node_modules/
+
+# 2. Windows Executables (~200MB total, not allowed on GitHub and not needed in Termux)
+bin/
+*.exe
+
+# 3. Temporary, Cache, & Logs
+tmp/
+*.log
+crash.log
+.DS_Store
+
+# 4. Runtime Progress & State
+bulk_feed_progress.json
+auto_progress/
+sessions/
+license.txt
+*.bak
