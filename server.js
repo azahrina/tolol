@@ -1010,6 +1010,21 @@ io.on('connection', (socket) => {
         const client = await getExtClient(data.cookies, data.ua);
         const result = await client.resolveUser(data.username);
         socket.emit('ACTION_RESPONSE', { requestId, ok: true, ...result });
+      } else if (action === 'user-info' || action === 'get-user-info') {
+        const client = await getExtClient(data.cookies, data.ua);
+        const targetId = data.userId || data.pk || data.targetId;
+        const info = await client.ig.user.info(targetId);
+        const user = (info && info.user) ? info.user : info;
+        socket.emit('ACTION_RESPONSE', {
+          requestId,
+          ok: true,
+          username: user.username,
+          pk: String(user.pk || targetId),
+          userId: String(user.pk || targetId),
+          fullName: user.full_name || '',
+          isPrivate: !!user.is_private,
+          profilePicUrl: user.profile_pic_url || ''
+        });
       } else {
         // Fallback untuk action lain jika belum terdaftar
         socket.emit('ACTION_RESPONSE', { requestId, ok: false, error: 'Unknown socket action' });
@@ -1237,6 +1252,33 @@ app.post('/api/extension/resolve-user', async (req, res) => {
     res.json({ ok: true, pk: String(info.pk), username: info.username });
   } catch (e) { res.status(400).json({ ok: false, error: e.message }); }
 });
+
+const handleUserInfo = async (req, res) => {
+  try {
+    const targetId = req.body.userId || req.body.pk || req.body.id || req.query.userId || req.query.pk;
+    if (!targetId) return res.status(400).json({ ok: false, error: 'userId is required' });
+    const client = await getExtClient(req.body.cookies, req.body.ua);
+    const info = await client.ig.user.info(targetId);
+    const user = (info && info.user) ? info.user : info;
+    if (!user || !user.username) {
+      return res.status(404).json({ ok: false, error: 'User not found' });
+    }
+    res.json({
+      ok: true,
+      username: user.username,
+      pk: String(user.pk || targetId),
+      userId: String(user.pk || targetId),
+      fullName: user.full_name || '',
+      isPrivate: !!user.is_private,
+      profilePicUrl: user.profile_pic_url || ''
+    });
+  } catch (e) {
+    res.status(400).json({ ok: false, error: e.message });
+  }
+};
+app.post('/api/extension/user/info', handleUserInfo);
+app.post('/api/extension/user-info', handleUserInfo);
+app.get('/api/extension/user/info', handleUserInfo);
 
 app.post('/api/extension/resolve-media', async (req, res) => {
   try {
